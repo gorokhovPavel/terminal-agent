@@ -130,31 +130,30 @@ guitarspace/
 
 ---
 
-## План реализации
+## Архитектура
 
-### Слой: Interface
-- Простая HTML-страница чата (`static/index.html`)
-- Отображение сообщений, главное меню, поле ввода
-- Кнопки: Услуги, FAQ, Оставить заявку, ИИ-консультант, Обратная связь
-- Vanilla JS: отправка сообщений, рендер ответов, history в DOM
+### Interface
+- `static/index.html` — страница чата с меню и полем ввода
+- `static/style.css` — стили
+- `static/chat.js` — отправка сообщений, рендер ответов, переключение режимов
 
-### Слой: Backend
-- `app.py` — FastAPI, маршруты `/api/chat` и `/api/ai`, отдача `static/`
-- `bot_flow.py` — конечный автомат: главное меню → ветки → форма заявки
-- Сессии через `session_id` (генерируется на клиенте, передаётся в каждом запросе)
+### Backend
+- `app.py` — FastAPI-сервер, маршруты `/api/chat` (bot-flow) и `/api/ai` (агент)
+- `bot_flow.py` — конечный автомат: меню → ветки → форма заявки (без модели)
+- Сессии через `session_id`, генерируется на клиенте
 
-### Слой: Database
-- `db.py` — создание таблиц при старте, CRUD-операции
-- Таблица `leads`: `session_id, source, service, contact, problem_text, agent_summary, missing_info, status, created_at`
-- Таблица `feedback`: `session_id, message_text, created_at`
+### Database
+- `db.py` — инициализация БД при старте, `save_lead`, `save_feedback`
+- `leads`: `session_id, source, service, contact, problem_text, agent_summary, missing_info, status, created_at`
+- `feedback`: `session_id, message_text, created_at`
 - Файл: `data/bot.sqlite3`
 
-### Слой: Agent
+### Agent
 - `ai_client.py` — OpenAI-совместимый клиент для Yandex AI Studio
 - `agent_runtime.py` — agent loop: задача → model call → tool-call → result → answer
-- `agent/tools.py` — 4 tools: `search_knowledge`, `read_knowledge_file`, `prepare_lead_draft`, `save_confirmed_lead`
-- `agent/soul.md` — роль, тон, ограничения консультанта
-- `knowledge/` — база знаний: услуги, FAQ, правила
+- `agent/tools.py` — 4 tools с защитой путей
+- `agent/soul.md` — роль, тон, ограничения
+- `knowledge/` — база знаний: `services.md`, `faq.md`, `rules.md`
 
 ---
 
@@ -178,7 +177,7 @@ guitarspace/
 
 ```bash
 # 1. Клонировать репозиторий и перейти в папку
-git clone <repo-url>
+git clone https://github.com/gorokhovPavel/terminal-agent.git guitarspace
 cd guitarspace
 
 # 2. Создать виртуальное окружение
@@ -208,6 +207,7 @@ Ctrl+C  # локально
 pkill -f app.py  # на VPS
 
 # Повторный запуск на VPS
+pkill -f app.py 2>/dev/null; sleep 1
 nohup .venv/bin/python app.py >> app.log 2>&1 &
 ```
 
