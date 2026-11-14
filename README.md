@@ -263,9 +263,9 @@ test.describe('КД: Ручная установка/снятие признак
     await searchInput.fill(OPERATION_NAME);
 
     // 3. Кликаем по найденному пункту операции в списке
-    await page.getByText(OPERATION_NAME).click();
+    await page.getByText(OPERATION_NAME).last().click({ force: true });
 
-    // 4. Ждем открытия самой модалки (проверяем видимость кнопки "Выполнить" внутри нее)
+    // 4. Ждем открытия самой модалки
     await expect(page.getByRole('button', { name: 'Выполнить' })).toBeVisible();
   });
 
@@ -275,14 +275,28 @@ test.describe('КД: Ручная установка/снятие признак
     // Изначально кнопка заблокирована
     await expect(applyButton).toBeDisabled();
 
-    // Выбираем радиокнопку
-    await page.getByText('Установка блокировки').click();
+    // Выбираем радиокнопку "Установка блокировки"
+    await page.getByText('Установка блокировки').click({ force: true });
 
     // Кнопка разблокировалась — нажимаем
     await expect(applyButton).toBeEnabled();
     await applyButton.click();
 
     // Проверяем, что модалка закрылась
+    await expect(applyButton).not.toBeVisible();
+  });
+
+  test('снимает блокировку и закрывает модалку', async ({ page }) => {
+    const applyButton = page.getByRole('button', { name: 'Выполнить' });
+
+    await expect(applyButton).toBeDisabled();
+
+    // Выбираем радиокнопку "Снятие блокировки"
+    await page.getByText('Снятие блокировки').click({ force: true });
+
+    await expect(applyButton).toBeEnabled();
+    await applyButton.click();
+
     await expect(applyButton).not.toBeVisible();
   });
 
