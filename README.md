@@ -242,7 +242,6 @@ YANDEX_MAX_TOKENS=12000
 
 ...
 
-
 import { expect, Page } from '@playwright/test';
 
 export const DEFAULT_PRODUCT_URL =
@@ -287,3 +286,4 @@ test.describe('КД: Ручная установка/снятие признак
     // ...
   });
 });
+
