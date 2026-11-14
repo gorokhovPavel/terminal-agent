@@ -238,3 +238,44 @@ YANDEX_MAX_TOKENS=12000
 ## Биллинг и лимиты AI Studio
 
 Перед первым запросом к модели убедитесь, что в Yandex Cloud активен биллинг или trial, папка имеет доступ к выбранной модели, а лимит токенов не исчерпан. При ошибке `429` или `quota exceeded` проверьте статус в консоли Yandex Cloud.
+
+
+import { expect, test } from '@playwright/test';
+
+const PRODUCT_PAGE_URL =
+  '/?page=retailLoanProduct&clientId=1086338415&retailLoanProductId=30e415bb-a63d-4d67-b410-57d80654e0e0';
+
+test.describe('КД: Ручная установка/снятие признака блокировки', () => {
+  test.beforeEach(async ({ page }) => {
+    // 1. Сразу открываем страницу кредитного продукта по прямому URL
+    await page.goto(PRODUCT_PAGE_URL);
+
+    // 2. Открываем модалку (замените текст на точное название кнопки/пункта, по которому вы кликали)
+    await page.getByText('Название кнопки открытия модалки').click();
+
+    // Убеждаемся, что модалка открылась перед стартом теста
+    await expect(
+      page.getByText('Ручная установка/снятие признака блокировки на КД')
+    ).toBeVisible();
+  });
+
+  test('устанавливает блокировку и закрывает модалку', async ({ page }) => {
+    const applyButton = page.getByRole('button', { name: 'Выполнить' });
+
+    // Проверяем, что изначально кнопка неактивна
+    await expect(applyButton).toBeDisabled();
+
+    // Выбираем радиокнопку "Установка блокировки"
+    await page.getByLabel('Установка блокировки').click();
+
+    // Теперь кнопка "Выполнить" должна разблокироваться
+    await expect(applyButton).toBeEnabled();
+    await applyButton.click();
+
+    // Проверяем, что модалка закрылась после выполнения
+    await expect(
+      page.getByText('Ручная установка/снятие признака блокировки на КД')
+    ).not.toBeVisible();
+  });
+});
+
