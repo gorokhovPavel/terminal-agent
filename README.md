@@ -240,42 +240,55 @@ YANDEX_MAX_TOKENS=12000
 Перед первым запросом к модели убедитесь, что в Yandex Cloud активен биллинг или trial, папка имеет доступ к выбранной модели, а лимит токенов не исчерпан. При ошибке `429` или `quota exceeded` проверьте статус в консоли Yandex Cloud.
 
 
+...
+
+
 import { expect, test } from '@playwright/test';
 
 const PRODUCT_PAGE_URL =
   '/?page=retailLoanProduct&clientId=1086338415&retailLoanProductId=30e415bb-a63d-4d67-b410-57d80654e0e0';
 
+const OPERATION_NAME = 'Ручная установка/снятие признака блокировки на КД';
+
 test.describe('КД: Ручная установка/снятие признака блокировки', () => {
   test.beforeEach(async ({ page }) => {
-    // 1. Сразу открываем страницу кредитного продукта по прямому URL
     await page.goto(PRODUCT_PAGE_URL);
 
-    // 2. Открываем модалку (замените текст на точное название кнопки/пункта, по которому вы кликали)
-    await page.getByText('Название кнопки открытия модалки').click();
+    // 1. Нажимаем кнопку "Операции" в правом верхнем углу
+    await page.getByRole('button', { name: 'Операции' }).click();
 
-    // Убеждаемся, что модалка открылась перед стартом теста
-    await expect(
-      page.getByText('Ручная установка/снятие признака блокировки на КД')
-    ).toBeVisible();
+    // 2. Фильтруем список через поле поиска в открывшейся панели
+    const searchInput = page.getByPlaceholder('Выберите операцию');
+    await expect(searchInput).toBeVisible();
+    await searchInput.fill(OPERATION_NAME);
+
+    // 3. Кликаем по найденному пункту операции в списке
+    await page.getByText(OPERATION_NAME).click();
+
+    // 4. Ждем открытия самой модалки (проверяем видимость кнопки "Выполнить" внутри нее)
+    await expect(page.getByRole('button', { name: 'Выполнить' })).toBeVisible();
   });
 
   test('устанавливает блокировку и закрывает модалку', async ({ page }) => {
     const applyButton = page.getByRole('button', { name: 'Выполнить' });
 
-    // Проверяем, что изначально кнопка неактивна
+    // Изначально кнопка заблокирована
     await expect(applyButton).toBeDisabled();
 
-    // Выбираем радиокнопку "Установка блокировки"
-    await page.getByLabel('Установка блокировки').click();
+    // Выбираем радиокнопку
+    await page.getByText('Установка блокировки').click();
 
-    // Теперь кнопка "Выполнить" должна разблокироваться
+    // Кнопка разблокировалась — нажимаем
     await expect(applyButton).toBeEnabled();
     await applyButton.click();
 
-    // Проверяем, что модалка закрылась после выполнения
-    await expect(
-      page.getByText('Ручная установка/снятие признака блокировки на КД')
-    ).not.toBeVisible();
+    // Проверяем, что модалка закрылась
+    await expect(applyButton).not.toBeVisible();
+  });
+
+  test('закрывает модалку по кнопке Отменить', async ({ page }) => {
+    await page.getByRole('button', { name: 'Отменить' }).click();
+
+    await expect(page.getByRole('button', { name: 'Выполнить' })).not.toBeVisible();
   });
 });
-
