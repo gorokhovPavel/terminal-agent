@@ -242,49 +242,68 @@ YANDEX_MAX_TOKENS=12000
 
 ...
 
-import { expect, Page } from '@playwright/test';
+ЗАДАЧА: Напиши и отладь E2E-тест на Playwright для указанного FSD-слайса.
+ЦЕЛЕВОЙ СЛАЙС: [ВСТАВЬ_ПОЛНЫЙ_ПУТЬ_ОТ_КОРНЯ_ПРОЕКТА]
 
-export const DEFAULT_PRODUCT_URL =
-  '/?page=retailLoanProduct&clientId=1086338415&retailLoanProductId=30e415bb-a63d-4d67-b410-57d80654e0e0';
+Выполняй строго по шагам. Не пропускай шаги и не меняй порядок.
 
-export async function openOperationModal(
-  page: Page,
-  operationName: string,
-  productUrl: string = DEFAULT_PRODUCT_URL
-) {
-  await page.goto(productUrl);
+=== ШАГ 1. ЧТЕНИЕ ЭТАЛОНОВ И ПРАВИЛ ===
+Сначала прочитай два готовых файла в репозитории:
+1) src/shared/e2e/openOperationModal.ts
+2) src/widgets/retail-loan-product/operations/lock-flag-changing/e2e/retail-loan-kd-block.spec.ts
 
-  // 1. Нажимаем кнопку "Операции"
-  await page.getByRole('button', { name: 'Операции' }).click();
+=== ШАГ 2. АНАЛИЗ ЦЕЛЕВОГО СЛАЙСА ===
+Открой и прочитай файлы внутри [ВСТАВЬ_ПОЛНЫЙ_ПУТЬ_ОТ_КОРНЯ_ПРОЕКТА] (ui.tsx, model.ts и вложенные компоненты).
+Выпиши из кода:
+1. Точное название операции (строка, по которой ее выбирают в боковом меню «Операции»).
+2. Все реальные тексты элементов формы внутри модалки: заголовки, плейсхолдеры инпутов, тексты радиокнопок, чекбоксов и селектов.
+3. Точные названия кнопок (например, 'Выполнить', 'Отменить') и условие, при котором кнопка отправки заблокирована (disabled).
 
-  // 2. Фильтруем список через поле поиска
-  const searchInput = page.getByPlaceholder('Выберите операцию');
-  await expect(searchInput).toBeVisible();
-  await searchInput.fill(operationName);
+=== ШАГ 3. СОЗДАНИЕ ФАЙЛА ТЕСТА ===
+Создай файл теста строго внутри папки e2e целевого слайса:
+[ВСТАВЬ_ПОЛНЫЙ_ПУТЬ_ОТ_КОРНЯ_ПРОЕКТА]/e2e/index.spec.ts
 
-  // 3. Кликаем по найденному пункту операции
-  await page.getByText(operationName).last().click({ force: true });
-
-  // 4. Ждем появления модалки (проверяем наличие диалога или кнопки)
-  await expect(page.getByRole('dialog')).toBeVisible();
-}
-
+Используй СТРОГО этот шаблон:
 
 import { expect, test } from '@playwright/test';
-import { openOperationModal } from '@/shared/lib/e2e/openOperationModal'; // поправьте путь под ваш алиас
+import { openOperationModal } from '~/shared/e2e';
 
-const OPERATION_NAME = 'Ручная установка/снятие признака блокировки на КД';
+const OPERATION_NAME = 'ТОЧНОЕ_НАЗВАНИЕ_ОПЕРАЦИИ_ИЗ_ШАГА_2';
 
-test.describe('КД: Ручная установка/снятие признака блокировки', () => {
+test.describe('Название операции', () => {
   test.beforeEach(async ({ page }) => {
     await openOperationModal(page, OPERATION_NAME);
   });
 
-  test('устанавливает блокировку и закрывает модалку', async ({ page }) => {
-    // Здесь сразу начинаем проверять саму модалку
-    const applyButton = page.getByRole('button', { name: 'Выполнить' });
-    // ...
+  test('закрывает модалку по кнопке Отменить', async ({ page }) => {
+    await page.getByRole('button', { name: 'Отменить' }).click();
+    await expect(page.getByRole('dialog').last()).toBeHidden();
+  });
+
+  test('выполняет основной сценарий', async ({ page }) => {
+    const submitButton = page.getByRole('button', { name: 'Выполнить' });
+    await expect(submitButton).toBeDisabled();
+
+    // Подставь реальные действия с элементами из Шага 2:
+    // - радиокнопки, чекбоксы, пункты списков: await page.getByText('...').click({ force: true });
+    // - текстовые поля: await page.getByPlaceholder('...').fill('...');
+    // - кнопки: await page.getByRole('button', { name: '...' }).click();
+
+    await expect(submitButton).toBeEnabled();
+    await submitButton.click();
+    await expect(page.getByRole('dialog').last()).toBeHidden();
   });
 });
 
-..
+=== ЖЕСТКИЕ ЗАПРЕТЫ ===
+- ЗАПРЕЩЕНО выдумывать data-testid и использовать getByTestId, если такого атрибута нет в ui.tsx.
+- ЗАПРЕЩЕНО писать page.goto и открытие меню «Операции» вручную — используй ТОЛЬКО openOperationModal из '~/shared/e2e'.
+- ЗАПРЕЩЕНО кликать по радиокнопкам, чекбоксам и элементам выпадающих списков без { force: true } (styled-components перекрывают клик).
+- ЗАПРЕЩЕНО обращаться к getByRole('dialog') без .last() (на странице несколько диалогов, активная модалка всегда последняя).
+- ЗАПРЕЩЕНО добавлять eslint-disable комментарии в файл теста.
+
+=== ШАГ 4. ЗАПУСК И ОТЛАДКА ===
+Запусти созданный тест в терминале командой:
+npx playwright test [ВСТАВЬ_ПОЛНЫЙ_ПУТЬ_ОТ_КОРНЯ_ПРОЕКТА]/e2e/index.spec.ts
+
+Если тест упал — прочитай ошибку в терминале, исправь локатор в тесте и перезапусти команду, пока все тесты в файле не станут зелеными (passed).
