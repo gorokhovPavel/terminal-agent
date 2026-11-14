@@ -243,66 +243,47 @@ YANDEX_MAX_TOKENS=12000
 ...
 
 
-import { expect, test } from '@playwright/test';
+import { expect, Page } from '@playwright/test';
 
-const PRODUCT_PAGE_URL =
+export const DEFAULT_PRODUCT_URL =
   '/?page=retailLoanProduct&clientId=1086338415&retailLoanProductId=30e415bb-a63d-4d67-b410-57d80654e0e0';
+
+export async function openOperationModal(
+  page: Page,
+  operationName: string,
+  productUrl: string = DEFAULT_PRODUCT_URL
+) {
+  await page.goto(productUrl);
+
+  // 1. Нажимаем кнопку "Операции"
+  await page.getByRole('button', { name: 'Операции' }).click();
+
+  // 2. Фильтруем список через поле поиска
+  const searchInput = page.getByPlaceholder('Выберите операцию');
+  await expect(searchInput).toBeVisible();
+  await searchInput.fill(operationName);
+
+  // 3. Кликаем по найденному пункту операции
+  await page.getByText(operationName).last().click({ force: true });
+
+  // 4. Ждем появления модалки (проверяем наличие диалога или кнопки)
+  await expect(page.getByRole('dialog')).toBeVisible();
+}
+
+
+import { expect, test } from '@playwright/test';
+import { openOperationModal } from '@/shared/lib/e2e/openOperationModal'; // поправьте путь под ваш алиас
 
 const OPERATION_NAME = 'Ручная установка/снятие признака блокировки на КД';
 
 test.describe('КД: Ручная установка/снятие признака блокировки', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto(PRODUCT_PAGE_URL);
-
-    // 1. Нажимаем кнопку "Операции" в правом верхнем углу
-    await page.getByRole('button', { name: 'Операции' }).click();
-
-    // 2. Фильтруем список через поле поиска в открывшейся панели
-    const searchInput = page.getByPlaceholder('Выберите операцию');
-    await expect(searchInput).toBeVisible();
-    await searchInput.fill(OPERATION_NAME);
-
-    // 3. Кликаем по найденному пункту операции в списке
-    await page.getByText(OPERATION_NAME).last().click({ force: true });
-
-    // 4. Ждем открытия самой модалки
-    await expect(page.getByRole('button', { name: 'Выполнить' })).toBeVisible();
+    await openOperationModal(page, OPERATION_NAME);
   });
 
   test('устанавливает блокировку и закрывает модалку', async ({ page }) => {
+    // Здесь сразу начинаем проверять саму модалку
     const applyButton = page.getByRole('button', { name: 'Выполнить' });
-
-    // Изначально кнопка заблокирована
-    await expect(applyButton).toBeDisabled();
-
-    // Выбираем радиокнопку "Установка блокировки"
-    await page.getByText('Установка блокировки').click({ force: true });
-
-    // Кнопка разблокировалась — нажимаем
-    await expect(applyButton).toBeEnabled();
-    await applyButton.click();
-
-    // Проверяем, что модалка закрылась
-    await expect(applyButton).not.toBeVisible();
-  });
-
-  test('снимает блокировку и закрывает модалку', async ({ page }) => {
-    const applyButton = page.getByRole('button', { name: 'Выполнить' });
-
-    await expect(applyButton).toBeDisabled();
-
-    // Выбираем радиокнопку "Снятие блокировки"
-    await page.getByText('Снятие блокировки').click({ force: true });
-
-    await expect(applyButton).toBeEnabled();
-    await applyButton.click();
-
-    await expect(applyButton).not.toBeVisible();
-  });
-
-  test('закрывает модалку по кнопке Отменить', async ({ page }) => {
-    await page.getByRole('button', { name: 'Отменить' }).click();
-
-    await expect(page.getByRole('button', { name: 'Выполнить' })).not.toBeVisible();
+    // ...
   });
 });
